@@ -23,14 +23,14 @@ import org.apache.commons.logging.Log
  * and logs it using the logging API.
  */
 
-class LoggingCommandOutputListener(delegate:CommandOutputListener, logger:(String, Boolean) => Unit, shouldProcessExceptions:Boolean) extends DelegatingCommandOutputListener(delegate) {
+class LoggingCommandOutputListener(delegate: CommandOutputListener, logger: (String, Boolean) => Unit, shouldProcessExceptions: Boolean) extends DelegatingCommandOutputListener(delegate) {
 
-    override def outputReceived(hostName:String, line:String) = {
-        // If desired we can increase the checking of the exception to make it
-        // more reliably differentiate real problems.
-        val wasError = shouldProcessExceptions && (line.contains("Exception") || line.startsWith("\tat"))
-        logger(hostName + ": " + line, wasError)
-        super.outputReceived(hostName, line);
-    }
+  override def outputReceived(hostName: String, line: String) = {
+    // If desired we can increase the checking of the exception to make it
+    // more reliably differentiate real problems.
+    val wasError = shouldProcessExceptions && (line.contains("Exception") || line.startsWith("\tat"))
+    logger(hostName + ": " + line, wasError)
+    super.outputReceived(hostName, line);
+  }
 
 }

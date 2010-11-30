@@ -18,8 +18,8 @@ package com.mustardgrain.voldemortkickstart
 
 trait Ec2ConnectionListener {
 
-    def instanceCreated(instanceId:String)
+  def instanceCreated(instanceId: String)
 
-    def instanceDestroyed(instanceId:String)
+  def instanceDestroyed(instanceId: String)
 
 }

@@ -39,16 +39,16 @@ package com.mustardgrain.voldemortkickstart.util
 class HostNamePair(val externalHostName: String, val internalHostName: String) {
 
   override def hashCode() = {
-        val prime = 31
-        var result = 1
-        result = prime * result + externalHostName.hashCode
-        result = prime * result + internalHostName.hashCode
-        result
-    }
+    val prime = 31
+    var result = 1
+    result = prime * result + externalHostName.hashCode
+    result = prime * result + internalHostName.hashCode
+    result
+  }
 
-    override def equals(other: Any) = other match {
-      case that: HostNamePair => this.externalHostName == that.externalHostName && this.internalHostName == that.internalHostName
-      case _ => false
-    }
+  override def equals(other: Any) = other match {
+    case that: HostNamePair => this.externalHostName == that.externalHostName && this.internalHostName == that.internalHostName
+    case _ => false
+  }
 
 }

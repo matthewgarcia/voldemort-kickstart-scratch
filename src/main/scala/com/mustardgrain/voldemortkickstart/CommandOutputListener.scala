@@ -18,15 +18,15 @@ package com.mustardgrain.voldemortkickstart
 
 trait CommandOutputListener {
 
-    /**
-     * Called by the UnixCommand as it receives a line of output and calls any
-     * listener that was provided.
-     * 
-     * @param hostName External host name from which the line of output
-     *        originated
-     * @param line Line of output from remote system
-     */
+  /**
+   * Called by the UnixCommand as it receives a line of output and calls any
+   * listener that was provided.
+   * 
+   * @param hostName External host name from which the line of output
+   *        originated
+   * @param line Line of output from remote system
+   */
 
-    def outputReceived(hostName:String, line:String)
+  def outputReceived(hostName: String, line: String)
 
 }

@@ -21,11 +21,11 @@ package com.mustardgrain.voldemortkickstart
  * calls to outputReceived.
  */
 
-abstract class DelegatingCommandOutputListener(delegate:CommandOutputListener) extends CommandOutputListener {
+abstract class DelegatingCommandOutputListener(delegate: CommandOutputListener) extends CommandOutputListener {
 
-    def outputReceived(hostName:String, line:String) = {
-        if(delegate != null)
-            delegate.outputReceived(hostName, line);
-    }
+  def outputReceived(hostName: String, line: String) = {
+    if (delegate != null)
+      delegate.outputReceived(hostName, line);
+  }
 
 }
