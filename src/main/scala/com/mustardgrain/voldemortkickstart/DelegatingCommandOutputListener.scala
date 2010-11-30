@@ -1,5 +1,5 @@
 /*
- * Copyright 2009 LinkedIn, Inc.
+ * Copyright 2009 LinkedIn, Inc., 2010 Mustard Grain, Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -14,12 +14,18 @@
  * the License.
  */
 
-package voldemort.utils;
+package com.mustardgrain.voldemortkickstart
 
-public interface Ec2ConnectionListener {
+/**
+ * Abstract implementation of CommandOutputListener that allows chaining of
+ * calls to outputReceived.
+ */
 
-    public void instanceCreated(String instanceId);
+abstract class DelegatingCommandOutputListener(delegate:CommandOutputListener) extends CommandOutputListener {
 
-    public void instanceDestroyed(String instanceId);
+    def outputReceived(hostName:String, line:String) = {
+        if(delegate != null)
+            delegate.outputReceived(hostName, line);
+    }
 
 }

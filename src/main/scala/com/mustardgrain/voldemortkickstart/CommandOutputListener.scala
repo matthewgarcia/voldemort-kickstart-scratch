@@ -1,5 +1,5 @@
 /*
- * Copyright 2009 LinkedIn, Inc.
+ * Copyright 2009 LinkedIn, Inc., 2010 Mustard Grain, Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -14,24 +14,9 @@
  * the License.
  */
 
-package voldemort.utils.impl;
+package com.mustardgrain.voldemortkickstart
 
-/**
- * One of the main ways we determine what's going on is to literally parse the
- * output from the remote command line invocation. Each remote operation is
- * different and needs to be implemented specifically for the target command.
- * 
- * <p/>
- * 
- * <b>Note</b>: this approach is very brittle as it relies upon a consistent
- * output from the command. If the client or server are deployed with logging
- * disabled, there is then no way for the local system to detect state,
- * progress, etc. So this mechanism should not be used for anything much more
- * than logging or incidental state management.
- * 
- */
-
-public interface CommandOutputListener {
+trait CommandOutputListener {
 
     /**
      * Called by the UnixCommand as it receives a line of output and calls any
@@ -42,6 +27,6 @@ public interface CommandOutputListener {
      * @param line Line of output from remote system
      */
 
-    public void outputReceived(String hostName, String line);
+    def outputReceived(hostName:String, line:String)
 
 }

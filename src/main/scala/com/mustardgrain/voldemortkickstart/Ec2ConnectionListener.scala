@@ -1,5 +1,5 @@
 /*
- * Copyright 2009 LinkedIn, Inc.
+ * Copyright 2009 LinkedIn, Inc., 2010 Mustard Grain, Inc.
  * 
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -14,24 +14,12 @@
  * the License.
  */
 
-package voldemort.utils;
+package com.mustardgrain.voldemortkickstart
 
-public class RemoteOperationException extends Exception {
+trait Ec2ConnectionListener {
 
-    private static final long serialVersionUID = 1L;
+    def instanceCreated(instanceId:String)
 
-    public RemoteOperationException() {}
-
-    public RemoteOperationException(String message) {
-        super(message);
-    }
-
-    public RemoteOperationException(Throwable cause) {
-        super(cause);
-    }
-
-    public RemoteOperationException(String message, Throwable cause) {
-        super(message, cause);
-    }
+    def instanceDestroyed(instanceId:String)
 
 }
