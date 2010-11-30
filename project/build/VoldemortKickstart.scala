@@ -1,7 +1,9 @@
 import sbt._
+import de.element34.sbteclipsify._
 
-class VoldemortKickstartProject(info: ProjectInfo) extends DefaultProject(info) {
+class VoldemortKickstartProject(info: ProjectInfo) extends DefaultProject(info) with Eclipsify {
 
+  val sbtEclipsify = "de.element34" % "sbt-eclipsify" % "0.7.0"
   val commonsIo = "commons-io" % "commons-io" % "1.4"
   val commonsLang = "commons-lang" % "commons-lang" % "2.4"
   val log4j = "log4j" % "log4j" % "1.2.13"
