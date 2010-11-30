@@ -47,13 +47,9 @@ class Ec2Connection private (private val ec2: Jec2, private val listener: Ec2Con
     for (res <- jList.toList) {
       if (res.getInstances() != null) {
         for (instance <- res.getInstances()) {
-          instance.getDnsName
-
           if (instance.getDnsName == null || instance.getPrivateDnsName == null) {
             if (LOG.isWarnEnabled())
-              LOG.warn("Instance "
-                + instance.getInstanceId()
-                + " present, but missing external and/or internal host name");
+              LOG.warn("Instance " + instance.getInstanceId() + " present, but missing external and/or internal host name");
           } else {
             val hostNamePair = new HostNamePair(instance.getDnsName().trim(), instance.getPrivateDnsName().trim())
             hostNamePairs.add(hostNamePair)
@@ -64,11 +60,8 @@ class Ec2Connection private (private val ec2: Jec2, private val listener: Ec2Con
 
     hostNamePairs
   }
-
+  
 }
-
-/**  import scala.collection.JavaConversions._val list = new java.util.ArrayList[String]()list.add("test")val set = list.toSet 
- */
 
 object Ec2Connection {
 
