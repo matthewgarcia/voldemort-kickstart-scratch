@@ -16,10 +16,12 @@
 
 package com.mustardgrain.voldemortkickstart
 
-trait Ec2ConnectionListener {
+object Ec2InstanceType extends Enumeration {
 
-  def instanceCreated(instanceId: String)
-
-  def instanceDestroyed(instanceId: String)
+  val DEFAULT = Value
+  val LARGE = Value
+  val XLARGE = Value
+  val MEDIUM_HCPU = Value
+  val XLARGE_HCPU = Value
 
 }

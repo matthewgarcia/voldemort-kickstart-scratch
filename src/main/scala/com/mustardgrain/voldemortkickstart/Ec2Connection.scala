@@ -34,11 +34,11 @@ import scala.collection.JavaConversions._
  * library (http://code.google.com/p/typica/) for EC2 access.
  */
 
-class Ec2Connection private (private val ec2: Jec2, private val listener: Ec2ConnectionListener) {
+class Ec2Connection private (private val ec2: Jec2) {
 
   val POLL_INTERVAL = 15
 
-  val LOG = LogFactory.getLog(getClass())
+  val logger = LogFactory.getLog(getClass())
 
   def list(): List[HostNamePair] = {
     val hostNamePairs: List[HostNamePair] = List[HostNamePair]()
@@ -48,8 +48,8 @@ class Ec2Connection private (private val ec2: Jec2, private val listener: Ec2Con
       if (res.getInstances() != null) {
         for (instance <- res.getInstances()) {
           if (instance.getDnsName == null || instance.getPrivateDnsName == null) {
-            if (LOG.isWarnEnabled())
-              LOG.warn("Instance " + instance.getInstanceId() + " present, but missing external and/or internal host name");
+            if (logger.isWarnEnabled())
+              logger.warn("Instance " + instance.getInstanceId() + " present, but missing external and/or internal host name")
           } else {
             val hostNamePair = new HostNamePair(instance.getDnsName().trim(), instance.getPrivateDnsName().trim())
             hostNamePairs.add(hostNamePair)
@@ -60,18 +60,88 @@ class Ec2Connection private (private val ec2: Jec2, private val listener: Ec2Con
 
     hostNamePairs
   }
-  
+
+  def createInstances(ami: String, keypairId: String,
+    instanceType: Ec2InstanceType.Value,
+    instanceCount: Int): List[HostNamePair] = {
+    val launchConfiguration = new LaunchConfiguration(ami)
+    launchConfiguration.setInstanceType(InstanceType.valueOf(instanceType.toString))
+    launchConfiguration.setKeyName(keypairId)
+    launchConfiguration.setMinCount(instanceCount)
+    launchConfiguration.setMaxCount(instanceCount)
+
+    val reservationDescription = ec2.runInstances(launchConfiguration)
+    val instanceIds = List[String]()
+
+    for (instance <- reservationDescription.getInstances()) {
+      val instanceId = instance.getInstanceId()
+
+      if (logger.isInfoEnabled())
+        logger.info("Instance " + instanceId + " launched")
+
+      instanceIds.add(instanceId)
+    }
+
+    val hostNamePairs = List[HostNamePair]()
+    var interrupted = false
+
+    while (!instanceIds.isEmpty() && !interrupted) {
+      try {
+        if (logger.isDebugEnabled())
+          logger.debug("Sleeping for " + POLL_INTERVAL + " seconds...")
+
+        Thread.sleep(POLL_INTERVAL * 1000)
+      } catch {
+        case e: InterruptedException => interrupted = true
+      }
+
+      if (!interrupted) {
+        for (res <- ec2.describeInstances(instanceIds)) {
+          if (res.getInstances() != null) {
+            for (instance <- res.getInstances()) {
+              val state = String.valueOf(instance.getState()).toLowerCase()
+
+              if (!state.equals("running")) {
+                if (logger.isDebugEnabled())
+                  logger.debug("Instance " + instance.getInstanceId() + " in state: " + state)
+              } else {
+                if (instance.getDnsName == null || instance.getPrivateDnsName == null) {
+                  if (logger.isWarnEnabled())
+                    logger.warn("Instance " + instance.getInstanceId() + " in running state, but missing external and/or internal host name")
+                } else {
+                  val hostNamePair = new HostNamePair(instance.getDnsName().trim(), instance.getPrivateDnsName().trim())
+                  hostNamePairs.add(hostNamePair)
+
+                  if (logger.isInfoEnabled())
+                    logger.info("Instance " + instance.getInstanceId()
+                      + " running with external host name: "
+                      + hostNamePair.externalHostName
+                      + ", internal host name: "
+                      + hostNamePair.internalHostName)
+
+                  instanceIds.remove(instance.getInstanceId())
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return hostNamePairs;
+  }
+
 }
 
 object Ec2Connection {
 
-  def apply(accessId: String, secretKey: String, regionUrl: String, listener: Ec2ConnectionListener) = {
+  def apply(accessId: String, secretKey: String, regionUrl: String) = {
     var ec2 = new Jec2(accessId, secretKey)
 
     if (regionUrl != null && ec2 != null)
       ec2.setRegionUrl(regionUrl)
 
-    new Ec2Connection(ec2, listener)
+    new Ec2Connection(ec2)
   }
 
 }
