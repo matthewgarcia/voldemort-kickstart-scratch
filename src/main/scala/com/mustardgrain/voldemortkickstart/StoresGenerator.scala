@@ -58,8 +58,7 @@ class StoresGenerator {
       </stores>
 
     val pp = new PrettyPrinter(80, 2)
-    println(pp.format(str))
-    str.toString
+    pp.format(str)
   }
 
 }

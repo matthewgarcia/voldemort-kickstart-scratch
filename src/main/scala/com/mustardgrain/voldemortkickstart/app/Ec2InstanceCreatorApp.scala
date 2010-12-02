@@ -17,6 +17,7 @@
 package com.mustardgrain.voldemortkickstart.app
 
 import com.mustardgrain.voldemortkickstart._
+import com.mustardgrain.voldemortkickstart.util._
 
 object Ec2InstanceCreatorApp {
 
@@ -36,9 +37,11 @@ object Ec2InstanceCreatorApp {
       instanceType,
       instanceCount)
     */
-      
-    val gen = new StoresGenerator()
-    gen.createStoreDescriptor("foo", "bdb", "all", 1, 2, 3)
+
+    val test = """ssh root@localhost "mkdir -p /tmp/hiya; mkdir -p /tmp/hiya/buddy ; find /tmp/hiya""""
+    val args = CommandLineParser.parse(test)
+    val cmd = new UnixCommand("localhost", args)
+    val ret = cmd.execute
   }
 
 }

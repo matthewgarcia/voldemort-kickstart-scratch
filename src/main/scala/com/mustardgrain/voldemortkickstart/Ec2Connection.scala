@@ -37,9 +37,9 @@ import scala.collection.JavaConversions._
 
 class Ec2Connection private (private val ec2: Jec2) {
 
-  val POLL_INTERVAL = 15
+  private val POLL_INTERVAL = 15
 
-  val logger = LogFactory.getLog(getClass())
+  private val logger = LogFactory.getLog(getClass())
 
   def list(): List[HostNamePair] = {
     val hostNamePairs = new ListBuffer[HostNamePair]()
