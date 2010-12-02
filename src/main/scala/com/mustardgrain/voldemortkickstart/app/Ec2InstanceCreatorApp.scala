@@ -21,19 +21,24 @@ import com.mustardgrain.voldemortkickstart._
 object Ec2InstanceCreatorApp {
 
   def main(argv: Array[String]): Unit = {
+    /*
     val accessId = ""
     val secretKey = ""
-    val regionUrl = ""
     val ami = ""
     val keypairId = ""
-    val instanceCount = 0
+    val instanceCount = 1
     val instanceType = Ec2InstanceType.DEFAULT
 
-    val ec2Connection: Ec2Connection = Ec2Connection(accessId, secretKey, regionUrl)
+    val ec2Connection: Ec2Connection = Ec2Connection(accessId, secretKey)
+
     val hostNamePairs = ec2Connection.createInstances(ami,
       keypairId,
       instanceType,
       instanceCount)
+    */
+      
+    val gen = new StoresGenerator()
+    gen.createStoreDescriptor("foo", "bdb", "all", 1, 2, 3)
   }
 
 }

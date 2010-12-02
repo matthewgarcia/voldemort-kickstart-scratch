@@ -51,4 +51,6 @@ class HostNamePair(val externalHostName: String, val internalHostName: String) {
     case _ => false
   }
 
+  override def toString() = externalHostName + "=" + internalHostName
+
 }

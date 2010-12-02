@@ -27,6 +27,7 @@ import com.xerox.amazonws.ec2.LaunchConfiguration
 import com.xerox.amazonws.ec2.ReservationDescription
 
 import scala.collection._
+import scala.collection.mutable._
 import scala.collection.JavaConversions._
 
 /**
@@ -41,13 +42,13 @@ class Ec2Connection private (private val ec2: Jec2) {
   val logger = LogFactory.getLog(getClass())
 
   def list(): List[HostNamePair] = {
-    val hostNamePairs: List[HostNamePair] = List[HostNamePair]()
+    val hostNamePairs = new ListBuffer[HostNamePair]()
     val jList = ec2.describeInstances(new java.util.ArrayList[String]())
 
     for (res <- jList.toList) {
       if (res.getInstances() != null) {
         for (instance <- res.getInstances()) {
-          if (instance.getDnsName == null || instance.getPrivateDnsName == null) {
+          if (!isValid(instance.getDnsName, instance.getPrivateDnsName)) {
             if (logger.isWarnEnabled())
               logger.warn("Instance " + instance.getInstanceId() + " present, but missing external and/or internal host name")
           } else {
@@ -58,7 +59,7 @@ class Ec2Connection private (private val ec2: Jec2) {
       }
     }
 
-    hostNamePairs
+    hostNamePairs.toList
   }
 
   def createInstances(ami: String, keypairId: String,
@@ -71,7 +72,7 @@ class Ec2Connection private (private val ec2: Jec2) {
     launchConfiguration.setMaxCount(instanceCount)
 
     val reservationDescription = ec2.runInstances(launchConfiguration)
-    val instanceIds = List[String]()
+    val instanceIds = new ListBuffer[String]()
 
     for (instance <- reservationDescription.getInstances()) {
       val instanceId = instance.getInstanceId()
@@ -82,7 +83,7 @@ class Ec2Connection private (private val ec2: Jec2) {
       instanceIds.add(instanceId)
     }
 
-    val hostNamePairs = List[HostNamePair]()
+    val hostNamePairs = new ListBuffer[HostNamePair]()
     var interrupted = false
 
     while (!instanceIds.isEmpty() && !interrupted) {
@@ -105,7 +106,7 @@ class Ec2Connection private (private val ec2: Jec2) {
                 if (logger.isDebugEnabled())
                   logger.debug("Instance " + instance.getInstanceId() + " in state: " + state)
               } else {
-                if (instance.getDnsName == null || instance.getPrivateDnsName == null) {
+                if (!isValid(instance.getDnsName, instance.getPrivateDnsName)) {
                   if (logger.isWarnEnabled())
                     logger.warn("Instance " + instance.getInstanceId() + " in running state, but missing external and/or internal host name")
                 } else {
@@ -128,19 +129,23 @@ class Ec2Connection private (private val ec2: Jec2) {
       }
     }
 
-    return hostNamePairs;
+    return hostNamePairs.toList
+  }
+
+  /**
+   * Sorry, I'm through trying to figure out how to import com.xerox.amazonws.ec2.ReservationDescription's inner class Instance.
+   */
+
+  private def isValid(dnsName: String, privateDnsName: String) = {
+    dnsName != null && privateDnsName != null && !dnsName.trim().isEmpty() && !privateDnsName.trim().isEmpty()
   }
 
 }
 
 object Ec2Connection {
 
-  def apply(accessId: String, secretKey: String, regionUrl: String) = {
+  def apply(accessId: String, secretKey: String) = {
     var ec2 = new Jec2(accessId, secretKey)
-
-    if (regionUrl != null && ec2 != null)
-      ec2.setRegionUrl(regionUrl)
-
     new Ec2Connection(ec2)
   }
 
