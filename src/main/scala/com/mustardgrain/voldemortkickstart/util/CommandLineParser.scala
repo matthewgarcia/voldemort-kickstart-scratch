@@ -24,7 +24,7 @@ object CommandLineParser {
     val commands = new ListBuffer[String]()
     var isInQuotes = false
     var start = 0
-
+    
     for (i <- 0 until command.length()) {
       val c = command.charAt(i)
 

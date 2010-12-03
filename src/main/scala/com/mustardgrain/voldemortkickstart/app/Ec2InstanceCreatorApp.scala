@@ -38,10 +38,12 @@ object Ec2InstanceCreatorApp {
       instanceCount)
     */
 
-    val test = """ssh root@localhost "mkdir -p /tmp/hiya; mkdir -p /tmp/hiya/buddy ; find /tmp/hiya""""
+    val test = """ssh root@localhost "mkdir -p /tmp/hiya; mkdir -p /tmp/hiya/buddy ; find /tmp | sort""""
     val args = CommandLineParser.parse(test)
     val cmd = new UnixCommand("localhost", args)
     val ret = cmd.execute
+    
+    //println("cmd return value: " + ret)
   }
 
 }

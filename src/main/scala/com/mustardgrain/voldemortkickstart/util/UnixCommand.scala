@@ -15,12 +15,12 @@
  */
 
 package com.mustardgrain.voldemortkickstart.util
+import com.mustardgrain.voldemortkickstart._
 
+import java.io._
+import org.apache.commons.logging.LogFactory
 import scala.actors._
 import scala.actors.Actor._
-import com.mustardgrain.voldemortkickstart._
-import org.apache.commons.logging.LogFactory
-
 import scala.collection.JavaConversions._
 
 class UnixCommand(val hostName: String, private val args: List[String]) {
@@ -28,46 +28,51 @@ class UnixCommand(val hostName: String, private val args: List[String]) {
   private val logger = LogFactory.getLog(getClass())
   private val WAIT_TIME = 2000
 
-  private val caller = self
-
-  private val reader = actor {
-    println("created actor: " + Thread.currentThread)
-    var continue = true
-    loopWhile(continue) {
-      reactWithin(WAIT_TIME) {
-        case TIMEOUT =>
-          caller ! "react timeout"
-        case proc: Process =>
-          println("entering first actor " + Thread.currentThread)
-          val streamReader = new java.io.InputStreamReader(proc.getInputStream)
-          val bufferedReader = new java.io.BufferedReader(streamReader)
-          val stringBuilder = new java.lang.StringBuilder()
-          var line: String = null
-          while ({ line = bufferedReader.readLine; line != null }) {
-            stringBuilder.append(line)
-            stringBuilder.append("\n")
-          }
-          bufferedReader.close
-          caller ! stringBuilder.toString
-      }
-    }
-  }
-
   def execute = {
-    println(args.toList)
     val builder = new ProcessBuilder(args.toList)
     val proc = builder.start()
+    val lineReader = new BufferedReader(new InputStreamReader(proc.getInputStream))
+
+    val caller = self
+
+    val reader = actor {
+      var continue = true
+
+      loopWhile(continue) {
+        reactWithin(WAIT_TIME) {
+          case TIMEOUT =>
+            caller ! "react timeout"
+
+          case proc: Process =>
+            var line: String = null
+
+            while ({ line = lineReader.readLine; line != null }) {
+              caller ! line
+            }
+
+            lineReader.close
+            continue = false
+            caller ! caller
+
+        }
+      }
+    }
 
     reader ! proc
 
-    //Receive the console output from the actor.
-    receiveWithin(WAIT_TIME) {
-      case TIMEOUT => println("receiving Timeout")
-      case result: String => println(result)
+    var continue = true
+
+    while (continue) {
+      //Receive the console output from the actor.
+      receiveWithin(WAIT_TIME) {
+        case TIMEOUT => println("receiving Timeout")
+        case result: String => println(result)
+        case caller: Actor => continue = false
+      }
     }
-    
+
     proc.waitFor
-    
+
     proc.exitValue
   }
 
