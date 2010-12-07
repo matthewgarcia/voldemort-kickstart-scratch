@@ -28,7 +28,7 @@ class UnixCommand(val hostName: String, private val args: List[String]) {
   private val logger = LogFactory.getLog(getClass())
   private val WAIT_TIME = 2000
 
-  def execute = {
+  def execute() = {
     val builder = new ProcessBuilder(args.toList)
     val proc = builder.start()
     val lineReader = new BufferedReader(new InputStreamReader(proc.getInputStream))

@@ -14,43 +14,36 @@
  * the License.
  */
 
-package com.mustardgrain.voldemortkickstart.util
+package com.mustardgrain.voldemortkickstart
 
 /**
- * HostNamePair represents a pairing of a host's external and internal names.
- * Depending on the network topology, a given server may be referenced by a
- * different name to systems outside its local network than the name used
- * internal to the local network.
- * 
- * <p/>
- * 
- * An EC2 instance, as an example, has two different host names. The external
+ * Ec2Instance represents the combination of an EC2 instance ID, and its external and internal names.
+ * An EC2 instance has two different host names. The external
  * name (e.g. ec2-72-44-40-78.compute-1.amazonaws.com) and an internal one
  * (domU-12-31-39-06-BE-25.compute-1.internal).
- * 
- * <p/>
- * 
- * For systems which have only one name, both the external and internal host
- * names should be the same. That is, they should be identical and neither
- * should be set to null.
- * 
  */
 
-class HostNamePair(val externalHostName: String, val internalHostName: String) {
+class Ec2Instance(val instanceId: String, val externalHostName: String, val internalHostName: String) {
 
   override def hashCode() = {
     val prime = 31
     var result = 1
+    result = prime * result + instanceId.hashCode
     result = prime * result + externalHostName.hashCode
     result = prime * result + internalHostName.hashCode
     result
   }
 
   override def equals(other: Any) = other match {
-    case that: HostNamePair => this.externalHostName == that.externalHostName && this.internalHostName == that.internalHostName
+    case that: Ec2Instance =>
+      this.externalHostName == that.externalHostName &&
+        this.externalHostName == that.externalHostName &&
+        this.internalHostName == that.internalHostName
     case _ => false
   }
 
-  override def toString() = externalHostName + "=" + internalHostName
+  override def toString() = "instanceId: " + instanceId +
+    ", externalHostName: " + externalHostName +
+    ", internalHostName: " + internalHostName
 
 }

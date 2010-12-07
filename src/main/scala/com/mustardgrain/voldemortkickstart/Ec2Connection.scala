@@ -19,8 +19,6 @@ package com.mustardgrain.voldemortkickstart
 import org.apache.commons.logging.Log
 import org.apache.commons.logging.LogFactory
 
-import com.mustardgrain.voldemortkickstart.util.HostNamePair
-
 import com.xerox.amazonws.ec2.InstanceType
 import com.xerox.amazonws.ec2.Jec2
 import com.xerox.amazonws.ec2.LaunchConfiguration
@@ -41,8 +39,8 @@ class Ec2Connection private (private val ec2: Jec2) {
 
   private val logger = LogFactory.getLog(getClass())
 
-  def list(): List[HostNamePair] = {
-    val hostNamePairs = new ListBuffer[HostNamePair]()
+  def list(): List[Ec2Instance] = {
+    val instances = new ListBuffer[Ec2Instance]()
     val jList = ec2.describeInstances(new java.util.ArrayList[String]())
 
     for (res <- jList.toList) {
@@ -52,19 +50,20 @@ class Ec2Connection private (private val ec2: Jec2) {
             if (logger.isWarnEnabled())
               logger.warn("Instance " + instance.getInstanceId() + " present, but missing external and/or internal host name")
           } else {
-            val hostNamePair = new HostNamePair(instance.getDnsName().trim(), instance.getPrivateDnsName().trim())
-            hostNamePairs.add(hostNamePair)
+            instances.add(new Ec2Instance(instance.getInstanceId().trim(),
+              instance.getDnsName().trim(),
+              instance.getPrivateDnsName().trim()))
           }
         }
       }
     }
 
-    hostNamePairs.toList
+    instances.toList
   }
 
   def createInstances(ami: String, keypairId: String,
     instanceType: Ec2InstanceType.Value,
-    instanceCount: Int): List[HostNamePair] = {
+    instanceCount: Int): List[Ec2Instance] = {
     val launchConfiguration = new LaunchConfiguration(ami)
     launchConfiguration.setInstanceType(InstanceType.valueOf(instanceType.toString))
     launchConfiguration.setKeyName(keypairId)
@@ -83,7 +82,7 @@ class Ec2Connection private (private val ec2: Jec2) {
       instanceIds.add(instanceId)
     }
 
-    val hostNamePairs = new ListBuffer[HostNamePair]()
+    val instances = new ListBuffer[Ec2Instance]()
     var interrupted = false
 
     while (!instanceIds.isEmpty() && !interrupted) {
@@ -110,15 +109,16 @@ class Ec2Connection private (private val ec2: Jec2) {
                   if (logger.isWarnEnabled())
                     logger.warn("Instance " + instance.getInstanceId() + " in running state, but missing external and/or internal host name")
                 } else {
-                  val hostNamePair = new HostNamePair(instance.getDnsName().trim(), instance.getPrivateDnsName().trim())
-                  hostNamePairs.add(hostNamePair)
+                  instances.add(new Ec2Instance(instance.getInstanceId().trim(),
+                    instance.getDnsName().trim(),
+                    instance.getPrivateDnsName().trim()))
 
                   if (logger.isInfoEnabled())
-                    logger.info("Instance " + instance.getInstanceId()
+                    logger.info("Instance " + instance.getInstanceId().trim()
                       + " running with external host name: "
-                      + hostNamePair.externalHostName
+                      + instance.getDnsName().trim()
                       + ", internal host name: "
-                      + hostNamePair.internalHostName)
+                      + instance.getPrivateDnsName().trim())
 
                   instanceIds.remove(instance.getInstanceId())
                 }
@@ -129,7 +129,7 @@ class Ec2Connection private (private val ec2: Jec2) {
       }
     }
 
-    return hostNamePairs.toList
+    return instances.toList
   }
 
   /**
