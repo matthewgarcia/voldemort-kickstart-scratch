@@ -25,61 +25,25 @@ import scala.util.parsing.json._
 object Ec2InstanceCreator {
 
   def main(args: Array[String]): Unit = {
-    output()
+    val kickstartConfigFileName = "/home/kirk/Desktop/cluster.json"
+
+    val kickstartConfig = KickstartConfig.fromString(inputFile(kickstartConfigFileName))
+    //val clusterConfig = launchInstances(kickstartConfig)
+
+    val clusterConfigFileName = "/home/kirk/Desktop/" + kickstartConfig.clusterName + ".json"
+    val clusterConfig = Ec2ClusterConfig.fromString(inputFile(clusterConfigFileName))
+
+    outputFile(clusterConfigFileName, clusterConfig.mkString)
+
+    val clusterConfig2 = Ec2ClusterConfig.fromString(inputFile(clusterConfigFileName))
+
+    println(clusterConfig2)
   }
 
-  def output(): Unit = {
-    val ec2Instances = List(new Ec2Instance("foo", "bar", "baz"), new Ec2Instance("foo2", "bar3", "baz4"))
-
-    val buffer = new StringBuffer()
-    ec2Instances.foreach { instance =>
-      if (buffer.length() > 0)
-        buffer.append(", ")
-
-      buffer.append("{")
-      buffer.append("\"instanceId\": \"" + instance.instanceId + "\", ");
-      buffer.append("\"externalHostName\": \"" + instance.externalHostName + "\", ");
-      buffer.append("\"internalHostName\": \"" + instance.internalHostName + "\"");
-      buffer.append("}")
-    }
-
-    buffer.insert(0, "{ \n  \"nodes\": [\n    ")
-    buffer.append("\n  ]\n}")
-
-    var writer: FileWriter = null
-
-    try {
-      writer = new FileWriter(new File("/home/kirk/Desktop/default.json"))
-      writer.write(buffer.toString())
-    } catch {
-      case _ => println("error writing file"); System.exit(1)
-    }
-    finally {
-      writer.close()
-    }
-
-    val fileName = "/home/kirk/Desktop/default.json"
-    val source = Source.fromFile(fileName).mkString
-    val parsed = JSON.parseFull(source).asInstanceOf[Option[Map[String, String]]]
-    println(parsed)
-  }
-
-  def launchInstances(): List[Ec2Instance] = {
-    val fileName = "/home/kirk/Desktop/cluster.json"
-    val source = Source.fromFile(fileName).mkString
-    val parsed = JSON.parseFull(source).asInstanceOf[Option[Map[String, String]]]
-
-    val config = parsed.getOrElse(Map())
-    val clusterName = config.get("name").getOrElse("default")
-    val ami = getConfig(config, "ami")
-    val accessId = getConfig(config, "accessId")
-    val secretKey = getConfig(config, "secretKey")
-    val keypairId = getConfig(config, "keypairId")
-    val instanceType = Ec2InstanceType.valueOf(config.get("instanceType").getOrElse("DEFAULT")).getOrElse(Ec2InstanceType.DEFAULT)
-    val instanceCount = config.get("instanceCount").getOrElse("1").toInt
-
-    val ec2Connection: Ec2Connection = Ec2Connection(accessId, secretKey)
-    ec2Connection.createInstances(ami, keypairId, instanceType, instanceCount)
+  def launchInstances(config: KickstartConfig): Ec2ClusterConfig = {
+    val ec2Connection = Ec2Connection(config.accessId, config.secretKey)
+    val instances = ec2Connection.createInstances(config.ami, config.keypairId, config.instanceType, config.instanceCount)
+    new Ec2ClusterConfig(config.clusterName, instances)
   }
 
   def testSsh() = {
@@ -89,12 +53,22 @@ object Ec2InstanceCreator {
     val ret = cmd.execute()
   }
 
-  def getConfig(config: Map[String, String], parameterName: String): String = {
-    config.get(parameterName).getOrElse({
-      println("Please enter a value for " + parameterName)
-      System.exit(1)
-      ""
-    })
+  def outputFile(fileName: String, contents: String) = {
+    var writer: FileWriter = null
+
+    try {
+      writer = new FileWriter(new File(fileName))
+      writer.write(contents)
+    } catch {
+      case _ => println("error writing file " + fileName); System.exit(1)
+    }
+    finally {
+      writer.close()
+    }
+  }
+
+  def inputFile(fileName: String): String = {
+    Source.fromFile(fileName).mkString
   }
 
 }
