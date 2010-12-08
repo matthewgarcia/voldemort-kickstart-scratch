@@ -29,6 +29,8 @@ class UnixCommand(val hostName: String, private val args: List[String]) {
   private val WAIT_TIME = 2000
 
   def execute() = {
+    println(args)
+
     val builder = new ProcessBuilder(args.toList)
     val proc = builder.start()
     val lineReader = new BufferedReader(new InputStreamReader(proc.getInputStream))
@@ -66,12 +68,15 @@ class UnixCommand(val hostName: String, private val args: List[String]) {
       //Receive the console output from the actor.
       receiveWithin(WAIT_TIME) {
         case TIMEOUT => println("receiving Timeout")
-        case result: String => println(result)
+        case result: String => println(hostName + ": " + result)
         case caller: Actor => continue = false
       }
     }
 
     proc.waitFor
+
+    if (proc.exitValue != 0)
+      println("Exited with code " + proc.exitValue)
 
     proc.exitValue
   }

@@ -28,7 +28,7 @@ import scala.xml._
  * to string format
  * 
  */
-class StoresGenerator {
+object StoresGenerator {
 
   def createStoreDescriptor(storeName: String,
     persistence: String,

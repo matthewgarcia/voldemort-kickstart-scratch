@@ -25,32 +25,18 @@ import scala.util.parsing.json._
 object Ec2InstanceCreator {
 
   def main(args: Array[String]): Unit = {
-    val kickstartConfigFileName = "/home/kirk/Desktop/cluster.json"
+    val kickstartConfigFileName = args(0)
+    val kickstartConfig = KickstartConfig.fromString(Source.fromFile(kickstartConfigFileName).mkString)
 
-    val kickstartConfig = KickstartConfig.fromString(inputFile(kickstartConfigFileName))
-    //val clusterConfig = launchInstances(kickstartConfig)
-
-    val clusterConfigFileName = "/home/kirk/Desktop/" + kickstartConfig.clusterName + ".json"
-    val clusterConfig = Ec2ClusterConfig.fromString(inputFile(clusterConfigFileName))
-
+    val clusterConfig = launchInstances(kickstartConfig)
+    val clusterConfigFileName = "/home/kirk/Desktop/" + clusterConfig.name + ".json"
     outputFile(clusterConfigFileName, clusterConfig.mkString)
-
-    val clusterConfig2 = Ec2ClusterConfig.fromString(inputFile(clusterConfigFileName))
-
-    println(clusterConfig2)
   }
 
   def launchInstances(config: KickstartConfig): Ec2ClusterConfig = {
     val ec2Connection = Ec2Connection(config.accessId, config.secretKey)
     val instances = ec2Connection.createInstances(config.ami, config.keypairId, config.instanceType, config.instanceCount)
-    new Ec2ClusterConfig(config.clusterName, instances)
-  }
-
-  def testSsh() = {
-    val test = """ssh root@localhost "mkdir -p /tmp/hiya; mkdir -p /tmp/hiya/buddy ; find /tmp | sort""""
-    val args = CommandLineParser.parse(test)
-    val cmd = new UnixCommand("localhost", args)
-    val ret = cmd.execute()
+    new Ec2ClusterConfig(config.clusterName, config.userId, config.privateKeyFile, instances)
   }
 
   def outputFile(fileName: String, contents: String) = {
@@ -65,10 +51,6 @@ object Ec2InstanceCreator {
     finally {
       writer.close()
     }
-  }
-
-  def inputFile(fileName: String): String = {
-    Source.fromFile(fileName).mkString
   }
 
 }
