@@ -28,9 +28,11 @@ object Tester {
     val clusterConfigFileName = args(0)
     val clusterConfig = Ec2ClusterConfig.fromString(Source.fromFile(clusterConfigFileName).mkString)
 
-    val foo = ClusterGenerator.createCluster(clusterConfig, 13)
+    val clusterXml = ClusterGenerator.createCluster(clusterConfig, 13)
+    val storesXml = StoresGenerator.createStoreDescriptor("test", "foo", "bar", 1, Math.min(clusterConfig.instances.length, 3), Math.min(clusterConfig.instances.length, 3))
 
-    println(foo)
+    println(clusterXml)
+    println(storesXml)
     System.exit(0)
 
     clusterConfig.instances.foreach({ instance =>
