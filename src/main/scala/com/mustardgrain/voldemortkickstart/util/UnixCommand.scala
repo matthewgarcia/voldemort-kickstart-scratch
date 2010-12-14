@@ -26,59 +26,61 @@ import scala.collection.JavaConversions._
 class UnixCommand(val hostName: String, private val args: List[String]) {
 
   private val logger = LogFactory.getLog(getClass())
-  private val WAIT_TIME = 2000
+  private val WAIT_TIME = 5000
 
-  def execute() = {
+  def execute(listener: CommandOutputListener) = {
     println(args)
 
     val builder = new ProcessBuilder(args.toList)
     val proc = builder.start()
-    val lineReader = new BufferedReader(new InputStreamReader(proc.getInputStream))
 
-    val caller = self
+    def foo1 = createActor(self)
+    def foo2 = createActor(self)
+    foo1 ! new BufferedReader(new InputStreamReader(proc.getInputStream))
+    foo2 ! new BufferedReader(new InputStreamReader(proc.getErrorStream))
 
-    val reader = actor {
-      var continue = true
+    var continue = 2
 
-      loopWhile(continue) {
-        reactWithin(WAIT_TIME) {
-          case TIMEOUT =>
-            caller ! "react timeout"
-
-          case proc: Process =>
-            var line: String = null
-
-            while ({ line = lineReader.readLine; line != null }) {
-              caller ! line
-            }
-
-            lineReader.close
-            continue = false
-            caller ! caller
-
-        }
-      }
-    }
-
-    reader ! proc
-
-    var continue = true
-
-    while (continue) {
+    while (continue > 0) {
       //Receive the console output from the actor.
       receiveWithin(WAIT_TIME) {
-        case TIMEOUT => println("receiving Timeout")
-        case result: String => println(hostName + ": " + result)
-        case caller: Actor => continue = false
+        case TIMEOUT => System.out.println("receiving Timeout")
+        case result: String => listener.outputReceived(hostName, result)
+        case _ => continue -= 1
       }
     }
 
     proc.waitFor
 
-    if (proc.exitValue != 0)
-      println("Exited with code " + proc.exitValue)
+    val returnCode = proc.exitValue
 
-    proc.exitValue
+    if (returnCode != 0)
+      println("Exited with code " + returnCode)
+
+    returnCode
+  }
+
+  def createActor(caller: Actor) = {
+    actor {
+      var continue = true
+
+      loopWhile(continue) {
+        reactWithin(WAIT_TIME) {
+          case TIMEOUT =>
+            caller ! TIMEOUT
+
+          case lineReader: BufferedReader =>
+            var line: String = null
+
+            while ({ line = lineReader.readLine; line != null })
+              caller ! line
+
+            lineReader.close
+            continue = false
+            caller ! null
+        }
+      }
+    }
   }
 
 }

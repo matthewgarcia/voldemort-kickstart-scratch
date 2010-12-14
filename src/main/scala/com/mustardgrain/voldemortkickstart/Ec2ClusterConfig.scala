@@ -20,13 +20,14 @@ import java.io._
 import scala.io._
 import scala.util.parsing.json._
 
-class Ec2ClusterConfig(val name: String, val userId: String, val privateKeyFile: File, val instances: List[Ec2Instance]) {
+class Ec2ClusterConfig(val name: String, val userId: String, val voldemortHome: String, val privateKeyFile: File, val instances: List[Ec2Instance]) {
 
   def mkString(): String = {
     val buffer = new StringBuffer()
     buffer.append("{\n")
     buffer.append("  \"name\": \"" + name + "\",\n")
     buffer.append("  \"userId\": \"" + userId + "\",\n")
+    buffer.append("  \"voldemortHome\": \"" + voldemortHome + "\",\n")
     buffer.append("  \"privateKeyFile\": \"" + privateKeyFile.getAbsolutePath() + "\",\n")
     buffer.append("  \"nodes\": [\n")
     buffer.append("     ")
@@ -64,6 +65,7 @@ object Ec2ClusterConfig {
 
     val clusterName = getRequiredString(config, "name")
     val userId = config.getOrElse("userId", "root")
+    val voldemortHome = config.getOrElse("voldemortHome", "voldemort")
     val privateKeyFile = new File(config.getOrElse("privateKeyFile", System.getenv("HOME") + "/.ssh/id_rsa"))
 
     val instances = config.get("nodes").getOrElse({
@@ -76,7 +78,7 @@ object Ec2ClusterConfig {
       new Ec2Instance(instanceId, externalHostName, internalHostName)
     })
 
-    new Ec2ClusterConfig(clusterName, userId, privateKeyFile, instances)
+    new Ec2ClusterConfig(clusterName, userId, voldemortHome, privateKeyFile, instances)
   }
 
   private def getRequiredString(config: Map[String, String], parameterName: String): String = {

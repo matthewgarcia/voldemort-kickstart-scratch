@@ -36,7 +36,7 @@ object Ec2InstanceCreator {
   def launchInstances(config: KickstartConfig): Ec2ClusterConfig = {
     val ec2Connection = Ec2Connection(config.accessId, config.secretKey)
     val instances = ec2Connection.createInstances(config.ami, config.keypairId, config.instanceType, config.instanceCount)
-    new Ec2ClusterConfig(config.clusterName, config.userId, config.privateKeyFile, instances)
+    new Ec2ClusterConfig(config.clusterName, config.userId, "voldemort", config.privateKeyFile, instances)
   }
 
   def outputFile(fileName: String, contents: String) = {
