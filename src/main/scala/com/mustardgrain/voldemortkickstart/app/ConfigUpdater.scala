@@ -30,21 +30,25 @@ import scala.collection.mutable._
 
 object ConfigUpdater {
 
-  val WAIT_TIME = 60
+  var WAIT_TIME = 60
 
   def main(args: Array[String]): Unit = {
-    val clusterConfigFileName = args(0)
+    if (args.size < 2) {
+      println("Usage: scala " + getClass.getName() + " <cluster ID> <template configuration directory>")
+      System.exit(1)
+    }
+
+    val clusterId = args(0)
     val voldemortConfigDir = args(1)
+    val clusterConfigFileName: String = Config.CONFIG_DIRECTORY + "/" + clusterId + ".json"
+    val clusterConfigXmlFileName: String = Config.CONFIG_DIRECTORY + "/" + clusterId + "-cluster.xml"
     val clusterConfig = Ec2ClusterConfig.fromString(Source.fromFile(clusterConfigFileName).mkString)
 
-    //val clusterXml = ClusterGenerator.createCluster(clusterConfig, 13)
-    //val storesXml = StoresGenerator.createStoreDescriptor("test", "foo", "bar", 1, Math.min(clusterConfig.instances.length, 3), Math.min(clusterConfig.instances.length, 3))
-
     ssh(clusterConfig)
-
-    rsync(clusterConfig, voldemortConfigDir + "/config/cluster.xml", "config/kickstart/config/cluster.xml")
+    rsync(clusterConfig, clusterConfigXmlFileName, "config/kickstart/config/cluster.xml")
     rsync(clusterConfig, voldemortConfigDir + "/config/server.properties", "config/kickstart/config/server.properties")
     rsync(clusterConfig, voldemortConfigDir + "/config/stores.xml", "config/kickstart/config/stores.xml")
+    updateServerNodeIds(clusterConfig)
   }
 
   def ssh(clusterConfig: Ec2ClusterConfig) = {
@@ -62,6 +66,24 @@ object ConfigUpdater {
 
     clusterConfig.instances.foreach({ instance =>
       commands(instance.externalHostName) = "rsync -vazc -r --delete --progress --exclude=.git -e \"ssh -i " + clusterConfig.privateKeyFile + " -o StrictHostKeyChecking=no\" " + sourceFile + " " + clusterConfig.userId + "@" + instance.externalHostName + ":" + clusterConfig.voldemortHome + "/" + destinationDirectory
+    })
+
+    remoteExec(commands)
+  }
+
+  def updateServerNodeIds(clusterConfig: Ec2ClusterConfig) = {
+    val commands: Map[String, String] = Map[String, String]()
+    var nodeId = 0
+
+    clusterConfig.instances.foreach({ instance =>
+      commands(instance.externalHostName) = "ssh -i " + clusterConfig.privateKeyFile + " -o StrictHostKeyChecking=no " + clusterConfig.userId + "@" + instance.externalHostName + " \"" +
+        "cd voldemort/config/kickstart/config ; " +
+        "mv server.properties server.properties.bak ; " +
+        "grep -v \"^node.id=\" server.properties.bak > server.properties ; " +
+        "echo \"node.id=" + nodeId + "\" >> server.properties ; " +
+        "rm server.properties.bak ; " +
+        "\""
+      nodeId += 1
     })
 
     remoteExec(commands)

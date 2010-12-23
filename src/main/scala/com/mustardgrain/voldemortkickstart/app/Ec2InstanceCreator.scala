@@ -25,18 +25,34 @@ import scala.util.parsing.json._
 object Ec2InstanceCreator {
 
   def main(args: Array[String]): Unit = {
-    val kickstartConfigFileName = args(0)
-    val kickstartConfig = KickstartConfig.fromString(Source.fromFile(kickstartConfigFileName).mkString)
+    var kickstartConfig: KickstartConfig = null;
 
-    val clusterConfig = launchInstances(kickstartConfig)
-    val clusterConfigFileName = "/home/kirk/Desktop/" + clusterConfig.name + ".json"
-    outputFile(clusterConfigFileName, clusterConfig.mkString)
-  }
+    try {
+      kickstartConfig = KickstartConfig.fromString(Source.fromFile(Config.KICKSTART_CONFIG).mkString)
+    } catch {
+      case e: FileNotFoundException =>
+        println("ERROR: Please ensure that " + Config.KICKSTART_CONFIG + " exists and is readable")
+      case e: InvalidKickstartConfigException =>
+        println("ERROR: Please ensure that " + Config.KICKSTART_CONFIG + " contains valid configuration - " + e.getMessage)
+        System.exit(1)
+    }
 
-  def launchInstances(config: KickstartConfig): Ec2ClusterConfig = {
-    val ec2Connection = Ec2Connection(config.accessId, config.secretKey)
-    val instances = ec2Connection.createInstances(config.ami, config.keypairId, config.instanceType, config.instanceCount)
-    new Ec2ClusterConfig(config.clusterName, config.userId, "voldemort", config.privateKeyFile, instances)
+    try {
+      val ec2Connection = Ec2Connection(kickstartConfig.accessId, kickstartConfig.secretKey)
+      val instances = ec2Connection.createInstances(kickstartConfig.ami, kickstartConfig.keypairId, kickstartConfig.instanceType, kickstartConfig.instanceCount)
+      val clusterConfig = new Ec2ClusterConfig(kickstartConfig.clusterName, kickstartConfig.userId, "voldemort", kickstartConfig.privateKeyFile, instances)
+
+      val clusterConfigFileName = Config.CONFIG_DIRECTORY + "/" + clusterConfig.name + ".json"
+      outputFile(clusterConfigFileName, clusterConfig.mkString)
+
+      val clusterXml = ClusterGenerator.createCluster(clusterConfig, kickstartConfig.partitionsPerNode)
+      val clusterConfigXmlFileName = Config.CONFIG_DIRECTORY + "/" + clusterConfig.name + "-cluster.xml"
+      outputFile(clusterConfigXmlFileName, clusterXml)
+
+      println("Use the following value for your client's \"bootstrap URL\": tcp://" + clusterConfig.instances(0).externalHostName + ":6666")
+    } catch {
+      case e: InvalidKickstartConfigException => println(e.getMessage)
+    }
   }
 
   def outputFile(fileName: String, contents: String) = {

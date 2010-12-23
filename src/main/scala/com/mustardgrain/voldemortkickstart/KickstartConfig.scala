@@ -29,13 +29,18 @@ class KickstartConfig(val clusterName: String,
   val keypairId: String,
   val instanceType: Ec2InstanceType.Value,
   val instanceCount: Int,
+  val partitionsPerNode: Int,
   val userId: String) {
+
+  if (clusterName.exists(!_.isLetterOrDigit))
+    throw new InvalidKickstartConfigException("Cluster name contains non-alphanumeric characters")
 
   override def toString(): String = getClass.getName + " - clusterName: " + clusterName +
     ", ami: " + ami +
     ", keypairId: " + keypairId +
     ", instanceType: " + instanceType +
     ", instanceCount: " + instanceCount +
+    ", partitionsPerNode: " + partitionsPerNode +
     ", userId: " + userId
 
 }
@@ -44,31 +49,35 @@ object KickstartConfig {
 
   def fromString(jsonString: String): KickstartConfig = {
     val config = JSON.parseFull(jsonString).getOrElse({
-      println("Invalid Kickstart configuration")
-      System.exit(1)
+      throw new InvalidKickstartConfigException()
     }).asInstanceOf[Map[String, String]]
 
     val clusterName = config.get("clusterName").getOrElse("default")
-    val privateKeyFile = new File(config.getOrElse("privateKeyFile", System.getenv("HOME") + "/.ssh/id_rsa"))
+    val privateKeyFile = new File(config.getOrElse("privateKeyFile", System.getProperty("user.home") + "/.ssh/id_rsa"))
     val ami = getRequiredString(config, "ami")
     val accessId = getRequiredString(config, "accessId")
     val secretKey = getRequiredString(config, "secretKey")
     val keypairId = getRequiredString(config, "keypairId")
     val instanceType = Ec2InstanceType.valueOf(config.get("instanceType").getOrElse("DEFAULT")).getOrElse(Ec2InstanceType.DEFAULT)
-    
-    implicit def any2int(d:Any): Int = new Integer(d.toString().replace(".0", "")).intValue
-    
-    val instanceCount:Int = config.get("instanceCount").getOrElse(1)
-    val userId = config.get("userid").getOrElse("root")
 
-    new KickstartConfig(clusterName, privateKeyFile, ami, accessId, secretKey, keypairId, instanceType, instanceCount, userId)
+    implicit def any2int(d: Any): Int = new Integer(d.toString().replace(".0", "")).intValue
+    implicit def string2int(s: String): Int = new Integer(s.replace(".0", "")).intValue
+
+    val instanceCount: Int = config.get("instanceCount").getOrElse(1)
+    val partitionsPerNode: Int = getRequired(config, "partitionsPerNode")
+    val userId = config.get("userId").getOrElse("root")
+
+    new KickstartConfig(clusterName, privateKeyFile, ami, accessId, secretKey, keypairId, instanceType, instanceCount, partitionsPerNode, userId)
   }
 
   private def getRequiredString(config: Map[String, String], parameterName: String): String = {
+    getRequired(config, parameterName).asInstanceOf[String]
+  }
+
+  private def getRequired(config: Map[String, String], parameterName: String): Any = {
     config.get(parameterName).getOrElse({
-      println("Please enter a value for " + parameterName)
-      System.exit(1)
-    }).asInstanceOf[String]
+      throw new InvalidKickstartConfigException("Missing value for " + parameterName)
+    })
   }
 
 }
